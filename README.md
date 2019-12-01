@@ -23,8 +23,17 @@ composer require idimsh/php-internals-mocker
 ## Usage
 
 ``` php
-$example = new PackageSkeleton\Example();
-echo $example->say('Hello');
+
+use idimsh\PhpInternalsMocker\PhpFunctionSimpleMocker;
+
+PhpFunctionSimpleMocker::add(
+    'ini_get',
+    \Vendor\Package\Namespace\MyClass::class,
+    function ($key) {
+        static::assertSame('apc.enabled', $key);
+        return true;
+    }
+);
 ```
 
 ## Credits
