@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace idimsh\PhpInternalsMockerTest;
 
+/**
+ * @covers \idimsh\PhpInternalsMocker\PhpFunctionSimpleMocker
+ */
 class PhpFunctionSimpleMockerTest extends \PHPUnit\Framework\TestCase
 {
     /**
