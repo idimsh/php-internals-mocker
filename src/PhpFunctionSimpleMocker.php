@@ -70,7 +70,6 @@ class PhpFunctionSimpleMocker
         static::$registeredCallBacks = [];
     }
 
-
     /**
      * Register a call back to be called for the PHP internal function which is to be used in the class passed.
      *
@@ -102,6 +101,65 @@ class PhpFunctionSimpleMocker
         static::register($internalFunctionName, $beingCalledFromClass);
     }
 
+    /**
+     * This can be used in PHPUnit method: protected function assertPostConditions()
+     * And be called from there statically to throw an exception after the test method
+     * assertions has been evaluated. Which is not very elegant as the name of the test
+     * method will not be available then.
+     *
+     * @throws Exception\NotEnoughCalls
+     */
+    public static function assertPostConditions(): void
+    {
+        foreach (\array_keys(static::$registeredCallBacks) as $internalFunctionName) {
+            $invocationCount = static::$callCounters[$internalFunctionName] ?? 0;
+            $callbacks       = static::$registeredCallBacks[$internalFunctionName] ?? [];
+            $countCallbacks  = \count($callbacks);
+            if ($countCallbacks === 0 || \in_array(null, $callbacks, true)) {
+                // these cases are not handled here, but in ::call()
+                continue;
+            }
+            if ($invocationCount < $countCallbacks) {
+                throw Exception\NotEnoughCalls::fromFunctionName($internalFunctionName, $countCallbacks, $invocationCount);
+            }
+        }
+    }
+
+    /**
+     * This is for PhpUnit only
+     * This can be (and should be) called from PhpUnit test methods. Assuming that the self::reset() method
+     * is being called from the \PHPUnit\Framework\TestCase::setUp() method AND the self::add() method
+     * is being called from that particular test method, then a call to this method should be invoked as the
+     * last assertion in that test method.
+     *
+     * @param object $testCase An instance of \PHPUnit\Framework\TestCase, type is not enforced since
+     *                         the class might not be available.
+     *
+     * @throws Exception\InvalidArgumentException
+     */
+    public static function phpUnitAssertNotEnoughCalls($testCase): void
+    {
+        if (!\class_exists('PHPUnit\Framework\TestCase')) {
+            return;
+        }
+        if (!$testCase instanceof \PHPUnit\Framework\TestCase) {
+            throw new Exception\InvalidArgumentException(
+                \sprintf(
+                    'Parameter to method: [%s] is expected to be an instance of: [%s], got type: [%s] which is invalid',
+                    __METHOD__,
+                    \PHPUnit\Framework\TestCase::class,
+                    \gettype($testCase)
+                )
+            );
+        }
+        try {
+            static::assertPostConditions();
+        }
+        catch (Exception\NotEnoughCalls $exception) {
+            /** @var \PHPUnit\Framework\TestCase $testCase */
+            $testCase::fail($exception->getMessage());
+        }
+    }
 
     /**
      * This must be Public, but must not be called externally.
@@ -168,7 +226,6 @@ class PhpFunctionSimpleMocker
             static::$registeredCallBacks[$internalFunctionName][] = null;
         }
     }
-
 
     protected static function register(string $internalFunctionName, string $class): void
     {

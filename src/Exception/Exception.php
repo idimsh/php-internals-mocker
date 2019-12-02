@@ -10,6 +10,7 @@ class Exception extends \Exception
         $trace = (new \Exception())->getTraceAsString();
         $trace = \explode("\n", $trace);
         \array_shift($trace);
+        \array_shift($trace);
         return \implode("\n", $trace);
     }
 }
