@@ -92,8 +92,7 @@ class PhpFunctionSimpleMocker
         static::$registeredCallBacks[$internalFunctionName] = static::$registeredCallBacks[$internalFunctionName] ?? [];
         if ($callback === null) {
             self::addNullCallback($internalFunctionName);
-        }
-        else {
+        } else {
             while (--$numberOfCalls >= 0) {
                 static::$registeredCallBacks[$internalFunctionName][] = $callback;
             }
@@ -154,8 +153,7 @@ class PhpFunctionSimpleMocker
         }
         try {
             static::assertPostConditions();
-        }
-        catch (Exception\NotEnoughCalls $exception) {
+        } catch (Exception\NotEnoughCalls $exception) {
             /** @var \PHPUnit\Framework\TestCase $testCase */
             $testCase::fail($exception->getMessage());
         }
@@ -234,8 +232,7 @@ class PhpFunctionSimpleMocker
         if (0 < strpos($class, '\\Tests\\')) {
             $ns         = \str_replace('\\Tests\\', '\\', $class);
             $mockedNs[] = \substr($ns, 0, \strrpos($ns, '\\'));
-        }
-        elseif (0 === \strpos($class, 'Tests\\')) {
+        } elseif (0 === \strpos($class, 'Tests\\')) {
             $mockedNs[] = \substr($class, 6, \strrpos($class, '\\') - 6);
         }
         foreach ($mockedNs as $ns) {
@@ -243,7 +240,7 @@ class PhpFunctionSimpleMocker
                 continue;
             }
             eval(
-            <<<EOPHP
+                <<<EOPHP
 namespace $ns;
 
 function $internalFunctionName(...\$args)

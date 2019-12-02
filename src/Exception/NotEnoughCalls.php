@@ -21,6 +21,4 @@ class NotEnoughCalls extends Exception
 
         return new static($message);
     }
-
-
 }

@@ -17,6 +17,4 @@ class CallsLimitExceeded extends Exception
 
         return new static($message);
     }
-
-
 }
