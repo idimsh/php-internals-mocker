@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace idimsh\PhpInternalsMocker\Exception;
 
+/**
+ * @codeCoverageIgnore
+ */
 class CallsLimitExceeded extends Exception
 {
     public static function fromFunctionNameLimit(string $internalFunctionName, int $limit): self

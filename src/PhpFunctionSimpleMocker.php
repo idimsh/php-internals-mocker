@@ -35,8 +35,6 @@ namespace idimsh\PhpInternalsMocker;
  *
  * Will assure that register_shutdown_function() will never be called from any method inside that namespace
  *
- * @codeCoverageIgnore
- * @reason Class uses static methods and is used in tests only.
  */
 class PhpFunctionSimpleMocker
 {
