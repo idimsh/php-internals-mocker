@@ -46,9 +46,9 @@ class PhpFunctionSimpleMocker
      *   ...
      * ]
      *
-     * @var array | ?callable[][]
+     * @var array | callable[][]
      */
-    private static $registeredCallBacks = [];
+    protected static $registeredCallBacks = [];
 
     /**
      * [
@@ -58,7 +58,7 @@ class PhpFunctionSimpleMocker
      *
      * @var array | int[]
      */
-    private static $callCounters = [];
+    protected static $callCounters = [];
 
 
     /**
@@ -91,7 +91,7 @@ class PhpFunctionSimpleMocker
     {
         static::$registeredCallBacks[$internalFunctionName] = static::$registeredCallBacks[$internalFunctionName] ?? [];
         if ($callback === null) {
-            self::addNullCallback($internalFunctionName);
+            static::addNullCallback($internalFunctionName);
         } else {
             while (--$numberOfCalls >= 0) {
                 static::$registeredCallBacks[$internalFunctionName][] = $callback;
