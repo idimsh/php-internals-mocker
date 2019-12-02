@@ -6,6 +6,8 @@
 [![Coverage Status][ico-scrutinizer]][link-scrutinizer]
 [![Quality Score][ico-code-quality]][link-code-quality]
 [![Total Downloads][ico-downloads]][link-downloads]
+[![PHP Version][ico-phpversion]][link-packagist]
+
 
 
 
@@ -126,6 +128,7 @@ Released under MIT License - see the [License File](LICENSE) for details.
 [ico-scrutinizer]: https://img.shields.io/scrutinizer/coverage/g/idimsh/php-internals-mocker.svg?style=flat-square
 [ico-code-quality]: https://img.shields.io/scrutinizer/g/idimsh/php-internals-mocker.svg?style=flat-square
 [ico-downloads]: https://img.shields.io/packagist/dt/idimsh/php-internals-mocker.svg?style=flat-square
+[ico-phpversion]: https://img.shields.io/packagist/php-v/idimsh/php-internals-mocker?style=flat-square
 
 [link-packagist]: https://packagist.org/packages/idimsh/php-internals-mocker
 [link-travis]: https://travis-ci.org/idimsh/php-internals-mocker
