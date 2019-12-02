@@ -67,7 +67,7 @@ class MyClassTest extends \PHPUnit\Framework\TestCase
         PhpFunctionSimpleMocker::reset();
     }
     
-    public function testOpenConnction($hostname): void
+    public function testOpenConnction(): void
     {
         $hostname = \uniqid('hostname');
         $return   = \uniqid('some mock for the return of fsockopen()');
