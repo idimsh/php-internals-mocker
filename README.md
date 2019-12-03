@@ -45,7 +45,7 @@ namespace VendorTest\Namespace
 
 class MyClassTest extends \PHPUnit\Framework\TestCase
 {
-    public function testOpenConnction($hostname): void
+    public function testOpenConnction(): void
     {
         $object   = new \Vendor\Namespace\MyClass;
         $hostname = \uniqid('hostname');
@@ -95,7 +95,8 @@ class MyClassTest extends \PHPUnit\Framework\TestCase
 
 ## Methods Manual
 
-1- `PhpFunctionSimpleMocker::reset()`: should be called in PhpUnit TestCase `setUp()` method or at the beginning of a test method.
+1- `PhpFunctionSimpleMocker::reset()`: should be called in PhpUnit TestCase `setUp()` method or at the beginning of a test method.  
+
 2- `PhpFunctionSimpleMocker::add()`: to be called after `reset()` to register the callbacks expected to native functions, signature:  
 ``` php
     /**
@@ -123,7 +124,7 @@ The `$beingCalledFromClass` expects a class FQN which from the namespace will be
 
 3- `PhpFunctionSimpleMocker::phpUnitAssertNotEnoughCalls($testCase)`: To be called from PhpUnit test method after all the assertions have been registered (last line), this method will make sure that the minimum number of calls has been reached.   
 
-3- `PhpFunctionSimpleMocker::assertPostConditions(?$testCase)`: Alternative to `PhpFunctionSimpleMocker::phpUnitAssertNotEnoughCalls($testCase)` and to be called from PhpUnit TestCase method: `assertPostConditions()`, instead of calling the previous method at the end of each Test method, a one call passing the TestCase is enough to assert minimum count.     
+4- `PhpFunctionSimpleMocker::assertPostConditions(?$testCase)`: Alternative to `PhpFunctionSimpleMocker::phpUnitAssertNotEnoughCalls($testCase)` and to be called from PhpUnit TestCase method: `assertPostConditions()`, instead of calling the previous method at the end of each Test method, a one call passing the TestCase is enough to assert minimum count.     
 
 ## Usage Conditions
 
@@ -136,7 +137,7 @@ The native PHP function call that is to be mocked and replaced with a callback n
 ## Limitations
 Quickly:
 - PHP native functions that use references are not supported as of now, put planned to.
-- In PhpUnit, assertions for not enough calls has to be explicitly handled by calling `PhpFunctionSimpleMocker::phpUnitAssertNotEnoughCalls($this)`, if any better ideas are there please share.      
+- In PhpUnit, assertions for not enough calls has to be explicitly handled by calling `PhpFunctionSimpleMocker::phpUnitAssertNotEnoughCalls($this)` or `PhpFunctionSimpleMocker::assertPostConditions($this)`, if any better ideas are there please share.      
 - For any strange issues, the `@runInSeparateProcess` options of PhpUnit might help, though I did not encounter such cases yet, please report if any.    
 
 ## Credits
