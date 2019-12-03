@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace idimsh\PhpInternalsMocker;
 
+use idimsh\PhpInternalsMocker\Exception\InvalidArgumentException;
+use idimsh\PhpInternalsMocker\Exception\NotEnoughCalls;
+
 /**
  * The method used will utilize namespaces, and require that the call to PHP internals is
  * 1- Not called with absolute name space: like: \date()
@@ -56,7 +59,7 @@ class PhpFunctionSimpleMocker
      *
      * @var array | int[]
      */
-    protected static $callCounters = [];
+    protected static $invocationsCounter = [];
 
 
     /**
@@ -64,7 +67,7 @@ class PhpFunctionSimpleMocker
      */
     public static function reset()
     {
-        static::$callCounters        = [];
+        static::$invocationsCounter  = [];
         static::$registeredCallBacks = [];
     }
 
@@ -90,7 +93,8 @@ class PhpFunctionSimpleMocker
         static::$registeredCallBacks[$internalFunctionName] = static::$registeredCallBacks[$internalFunctionName] ?? [];
         if ($callback === null) {
             static::addNullCallback($internalFunctionName);
-        } else {
+        }
+        else {
             while (--$numberOfCalls >= 0) {
                 static::$registeredCallBacks[$internalFunctionName][] = $callback;
             }
@@ -99,25 +103,51 @@ class PhpFunctionSimpleMocker
     }
 
     /**
-     * This can be used in PHPUnit method: protected function assertPostConditions()
-     * And be called from there statically to throw an exception after the test method
-     * assertions has been evaluated. Which is not very elegant as the name of the test
-     * method will not be available then.
+     * This can be used in PHPUnit method: 'protected function assertPostConditions()' in TestCase.
+     * And be called from there statically to either:
+     * 1- throw an exception after the test method assertions has been evaluated (which is not very elegant as the name of the test
+     * method will not be available then).
+     * OR
+     * 2- cause the passed TestCase to ::fail() if the conditions are not met, which is a better approach and which to be
+     * used only if ::phpUnitAssertNotEnoughCalls() is not called at the end of each test method.
      *
-     * @throws Exception\NotEnoughCalls
+     * @param object | null $testCase   An instance of \PHPUnit\Framework\TestCase, type is not enforced since
+     *                                  the class might not be available.
+     * @throws Exception\NotEnoughCalls only if the passed object is not an instance of TestCase, otherwise
+     *                                  the passed TestCase will fail.
      */
-    public static function assertPostConditions(): void
+    public static function assertPostConditions($testCase = null): void
     {
+        try {
+            $isTestCase = $testCase === null
+                ? false
+                : self::isTestCaseOrThrow($testCase);
+        }
+        catch (InvalidArgumentException $e) {
+            $isTestCase = false;
+        }
+
         foreach (\array_keys(static::$registeredCallBacks) as $internalFunctionName) {
-            $invocationCount = static::$callCounters[$internalFunctionName] ?? 0;
-            $callbacks       = static::$registeredCallBacks[$internalFunctionName] ?? [];
-            $countCallbacks  = \count($callbacks);
-            if ($countCallbacks === 0 || \in_array(null, $callbacks, true)) {
+            $invocationCount         = static::$invocationsCounter[$internalFunctionName] ?? 0;
+            $callbacks               = static::$registeredCallBacks[$internalFunctionName] ?? [];
+            $expectedInvocationCount = \count($callbacks);
+            if ($expectedInvocationCount === 0 || \in_array(null, $callbacks, true)) {
                 // these cases are not handled here, but in ::call()
                 continue;
             }
-            if ($invocationCount < $countCallbacks) {
-                throw Exception\NotEnoughCalls::fromFunctionName($internalFunctionName, $countCallbacks, $invocationCount);
+            if ($invocationCount < $expectedInvocationCount) {
+                $exception = Exception\NotEnoughCalls::fromFunctionName(
+                    $internalFunctionName,
+                    $expectedInvocationCount,
+                    $invocationCount
+                );
+                if ($isTestCase) {
+                    /** @var \PHPUnit\Framework\TestCase $testCase */
+                    $testCase::fail($exception->getMessage());
+                }
+                else {
+                    throw $exception;
+                }
             }
         }
     }
@@ -136,22 +166,13 @@ class PhpFunctionSimpleMocker
      */
     public static function phpUnitAssertNotEnoughCalls($testCase): void
     {
-        if (!\class_exists('PHPUnit\Framework\TestCase')) {
+        if (!self::isTestCaseOrThrow($testCase)) {
             return;
-        }
-        if (!$testCase instanceof \PHPUnit\Framework\TestCase) {
-            throw new Exception\InvalidArgumentException(
-                \sprintf(
-                    'Parameter to method: [%s] is expected to be an instance of: [%s], got type: [%s] which is invalid',
-                    __METHOD__,
-                    \PHPUnit\Framework\TestCase::class,
-                    \gettype($testCase)
-                )
-            );
         }
         try {
             static::assertPostConditions();
-        } catch (Exception\NotEnoughCalls $exception) {
+        }
+        catch (Exception\NotEnoughCalls $exception) {
             /** @var \PHPUnit\Framework\TestCase $testCase */
             $testCase::fail($exception->getMessage());
         }
@@ -170,11 +191,11 @@ class PhpFunctionSimpleMocker
      */
     public static function call(string $internalFunctionName, &...$args)
     {
-        $countCalled    = static::$callCounters[$internalFunctionName] ?? 0;
-        $callbacks      = static::$registeredCallBacks[$internalFunctionName] ?? [];
-        $countCallbacks = \count($callbacks);
+        $invocationCount         = static::$invocationsCounter[$internalFunctionName] ?? 0;
+        $callbacks               = static::$registeredCallBacks[$internalFunctionName] ?? [];
+        $expectedInvocationCount = \count($callbacks);
 
-        if ($countCallbacks === 0) {
+        if ($expectedInvocationCount === 0) {
             /**
              * We will reach here if
              * 1- the function was registered to be called then the class was reset by
@@ -192,15 +213,16 @@ class PhpFunctionSimpleMocker
             throw Exception\NeverExpected::fromFunctionName($internalFunctionName);
         }
 
-        if ($countCalled >= $countCallbacks) {
-            throw Exception\CallsLimitExceeded::fromFunctionNameLimit($internalFunctionName, $countCallbacks);
+        if ($invocationCount >= $expectedInvocationCount) {
+            throw Exception\CallsLimitExceeded::fromFunctionNameLimit($internalFunctionName, $expectedInvocationCount);
         }
 
         /**
          * @var $callback callable
          */
-        $callback                                    = static::$registeredCallBacks[$internalFunctionName][$countCalled];
-        static::$callCounters[$internalFunctionName] = $countCalled + 1;
+        $callback = static::$registeredCallBacks[$internalFunctionName][$invocationCount];
+
+        static::$invocationsCounter[$internalFunctionName] = $invocationCount + 1;
 
         $ret = $args === null
             ? $callback()
@@ -209,6 +231,31 @@ class PhpFunctionSimpleMocker
         return $ret;
     }
 
+    /**
+     * @param object $testCase An instance of \PHPUnit\Framework\TestCase, type is not enforced since
+     *                         the class might not be available.
+     *
+     * @throws Exception\InvalidArgumentException
+     * @return bool
+     */
+    protected static function isTestCaseOrThrow($testCase): bool
+    {
+        if (!\class_exists('PHPUnit\Framework\TestCase')) {
+            return false;
+        }
+        if (!$testCase instanceof \PHPUnit\Framework\TestCase) {
+            throw new Exception\InvalidArgumentException(
+                \sprintf(
+                    'Parameter to method: [%s] is expected to be an instance of: [%s], got type: [%s] which is invalid',
+                    __METHOD__,
+                    \PHPUnit\Framework\TestCase::class,
+                    \gettype($testCase)
+                )
+            );
+        }
+
+        return true;
+    }
 
     /**
      * Add null callback if it is not already there
@@ -230,7 +277,8 @@ class PhpFunctionSimpleMocker
         if (0 < strpos($class, '\\Tests\\')) {
             $ns         = \str_replace('\\Tests\\', '\\', $class);
             $mockedNs[] = \substr($ns, 0, \strrpos($ns, '\\'));
-        } elseif (0 === \strpos($class, 'Tests\\')) {
+        }
+        elseif (0 === \strpos($class, 'Tests\\')) {
             $mockedNs[] = \substr($class, 6, \strrpos($class, '\\') - 6);
         }
         foreach ($mockedNs as $ns) {
@@ -238,7 +286,7 @@ class PhpFunctionSimpleMocker
                 continue;
             }
             eval(
-                <<<EOPHP
+            <<<EOPHP
 namespace $ns;
 
 function $internalFunctionName(...\$args)
